@@ -1,28 +1,14 @@
 <script setup lang="ts">
-import { ref, watch, h, computed, type MaybeRef, unref } from "vue";
+import { ref, h, computed, type MaybeRef, unref } from "vue";
 import { NDataTable, type DataTableColumns, NPopover } from "naive-ui";
-import { currentDevice } from "../hooks/useDevices";
-import { currentPath } from "../hooks/useFileList";
 import type { FileItem } from "../types/file-item";
 import FileListContextmenu from "./FileListContextmenu.vue";
 import { getCurrentDeviceFileList, resolveCommandPath } from "../utils/adb";
-
-/** 当前路径的文件列表 */
-const currentPathFileList = ref<FileItem[]>([]);
-
-watch(
-  currentDevice,
-  async (newDevice) => {
-    if (newDevice === "") {
-      return;
-    }
-    currentPath.value = "/";
-    currentPathFileList.value = await getCurrentDeviceFileList(
-      resolveCommandPath(currentPath.value),
-    );
-  },
-  { immediate: true },
-);
+import {
+  currentPathFileList,
+  loadingFileList as loading,
+  pushHistory,
+} from "../hooks/useRoute";
 
 const columns: DataTableColumns<FileItem> = [
   { type: "selection" },
@@ -85,6 +71,9 @@ const rowProps = (row: FileItem) => {
       e.preventDefault();
       contextmenuRef.value?.open(e, row);
     },
+    ondblclick() {
+      pushHistory(row.name);
+    },
   };
 };
 
@@ -125,6 +114,7 @@ const onRefreshPath = async (path: string) => {
       :columns
       :data="currentPathFileList"
       :cascade="false"
+      :loading
       allow-checking-not-loaded
       :row-key="(row) => row.name"
       :row-props

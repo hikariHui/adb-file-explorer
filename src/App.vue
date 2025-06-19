@@ -16,10 +16,26 @@ import {
   NMenu,
   NFlex,
   NMessageProvider,
+  NBreadcrumb,
+  NBreadcrumbItem,
 } from "naive-ui";
-import { PhonePortraitOutline, Reload } from "@vicons/ionicons5";
+import {
+  PhonePortraitOutline,
+  Reload,
+  ChevronBack,
+  ChevronForward,
+} from "@vicons/ionicons5";
 import { devices, currentDevice, refreshDevices } from "./hooks/useDevices";
 import FileList from "./components/FileList.vue";
+import {
+  currentPath,
+  backHistory,
+  canBackHistory,
+  canForwardHistory,
+  forwardHistory,
+  pushHistory,
+} from "./hooks/useRoute";
+import path from "path-browserify-esm";
 
 /** 系统当前主题 */
 const osThemeRef = useOsTheme();
@@ -50,59 +66,15 @@ const menuOptions = computed(() => [
       key: device.id,
     })),
   },
-  // {
-  //   label: '舞，舞，舞',
-  //   key: 'dance-dance-dance',
-  //   icon: renderIcon(BookIcon),
-  //   children: [
-  //     {
-  //       type: 'group',
-  //       label: '人物',
-  //       key: 'people',
-  //       children: [
-  //         {
-  //           label: '叙事者',
-  //           key: 'narrator',
-  //           icon: renderIcon(PersonIcon)
-  //         },
-  //         {
-  //           label: '羊男',
-  //           key: 'sheep-man',
-  //           icon: renderIcon(PersonIcon)
-  //         }
-  //       ]
-  //     },
-  //     {
-  //       label: '饮品',
-  //       key: 'beverage',
-  //       icon: renderIcon(WineIcon),
-  //       children: [
-  //         {
-  //           label: '威士忌',
-  //           key: 'whisky'
-  //         }
-  //       ]
-  //     },
-  //     {
-  //       label: '食物',
-  //       key: 'food',
-  //       children: [
-  //         {
-  //           label: '三明治',
-  //           key: 'sandwich'
-  //         }
-  //       ]
-  //     },
-  //     {
-  //       label: '过去增多，未来减少',
-  //       key: 'the-past-increases-the-future-recedes'
-  //     }
-  //   ]
-  // }
 ]);
 const expandedKeys = ref<string[]>(["devices"]);
 
 refreshDevices();
+
+const currentPathName = computed(() => path.basename(currentPath.value));
+const currentPathList = computed(() =>
+  currentPath.value.split("/").filter((item) => item !== ""),
+);
 </script>
 
 <template>
@@ -110,6 +82,7 @@ refreshDevices();
     <NMessageProvider>
       <div style="position: relative; height: 100vh">
         <NLayout position="absolute" has-sider>
+          <!-- 侧边栏 -->
           <NLayoutSider
             bordered
             show-trigger
@@ -128,7 +101,9 @@ refreshDevices();
               :options="menuOptions"
             />
           </NLayoutSider>
+          <!-- 主内容区 -->
           <NLayout>
+            <!-- 顶部栏 -->
             <NLayoutHeader
               position="absolute"
               :style="{ height: `${headerHeight}px`, padding: '0 14px' }"
@@ -138,7 +113,29 @@ refreshDevices();
                 align="center"
                 style="height: 100%"
               >
-                <div />
+                <NFlex align="center">
+                  <NButton
+                    quaternary
+                    :disabled="!canBackHistory"
+                    @click="backHistory"
+                  >
+                    <template #icon>
+                      <NIcon :component="ChevronBack" />
+                    </template>
+                  </NButton>
+                  <NButton
+                    quaternary
+                    :disabled="!canForwardHistory"
+                    @click="forwardHistory"
+                  >
+                    <template #icon>
+                      <NIcon :component="ChevronForward" />
+                    </template>
+                  </NButton>
+                  <div style="font-size: var(--n-font-size)">
+                    {{ currentPathName }}
+                  </div>
+                </NFlex>
                 <NButton quaternary @click="refreshDevices">
                   <template #icon>
                     <NIcon :component="Reload" />
@@ -146,6 +143,7 @@ refreshDevices();
                 </NButton>
               </NFlex>
             </NLayoutHeader>
+            <!-- 主内容区 -->
             <NLayoutContent
               ref="contentRef"
               position="absolute"
@@ -158,11 +156,27 @@ refreshDevices();
             >
               <FileList />
             </NLayoutContent>
+            <!-- 底部栏 -->
             <NLayoutFooter
               position="absolute"
-              :style="{ bottom: '0', height: '64px' }"
+              :style="{ bottom: '0', height: '64px', padding: '0 14px' }"
             >
-              成府路
+              <NFlex style="height: 100%" align="center">
+                <NBreadcrumb>
+                  <NBreadcrumbItem @click="pushHistory('/')">/</NBreadcrumbItem>
+                  <NBreadcrumbItem
+                    v-for="(item, i) in currentPathList"
+                    :key="i"
+                    @click="
+                      pushHistory(
+                        `/${currentPathList.slice(0, i + 1).join('/')}`,
+                      )
+                    "
+                  >
+                    {{ item }}
+                  </NBreadcrumbItem>
+                </NBreadcrumb>
+              </NFlex>
             </NLayoutFooter>
           </NLayout>
         </NLayout>
