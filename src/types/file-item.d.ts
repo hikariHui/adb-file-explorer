@@ -3,6 +3,7 @@ export type FileItem = {
   type: "directory" | "regular file" | "symbolic link";
   size: string;
   time: string;
+  link: string;
   basename: string;
   isDirectory: boolean;
   children?: FileItem[];

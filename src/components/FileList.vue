@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, h, computed, MaybeRef, unref } from "vue";
+import { ref, watch, h, computed, type MaybeRef, unref } from "vue";
 import { NDataTable, type DataTableColumns, NPopover } from "naive-ui";
 import { currentDevice } from "../hooks/useDevices";
 import { currentPath } from "../hooks/useFileList";
@@ -24,7 +24,7 @@ watch(
   { immediate: true },
 );
 
-const columns: DataTableColumns = [
+const columns: DataTableColumns<FileItem> = [
   { type: "selection" },
   {
     title: "文件名",
@@ -64,7 +64,8 @@ const columns: DataTableColumns = [
   },
 ];
 
-const onLoad = async (row: FileItem) => {
+const onLoad = async (_row: Record<string, unknown>) => {
+  const row = _row as FileItem;
   if (row.isDirectory) {
     row.children = await getCurrentDeviceFileList(resolveCommandPath(row.name));
   }
