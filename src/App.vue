@@ -1,154 +1,172 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { ref, computed, type Component, h } from "vue";
+import {
+  NConfigProvider,
+  zhCN,
+  dateZhCN,
+  NButton,
+  useOsTheme,
+  darkTheme,
+  NLayout,
+  NLayoutSider,
+  NLayoutHeader,
+  NLayoutContent,
+  NLayoutFooter,
+  NIcon,
+  NMenu,
+  NFlex,
+  NMessageProvider,
+} from "naive-ui";
+import { PhonePortraitOutline, Reload } from "@vicons/ionicons5";
+import { devices, currentDevice, refreshDevices } from "./hooks/useDevices";
+import FileList from "./components/FileList.vue";
 
-const greetMsg = ref("");
-const name = ref("");
+/** 系统当前主题 */
+const osThemeRef = useOsTheme();
+/** 本应用主题 */
+const theme = computed(() => (osThemeRef.value === "dark" ? darkTheme : null));
 
-async function greet() {
-  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  greetMsg.value = await invoke("greet", { name: name.value });
+/** 侧边栏是否折叠 */
+const inverted = ref(false);
+/** 侧边栏宽度 */
+const siderWidth = 240;
+/** 侧边栏折叠宽度 */
+const collapsedWidth = 64;
+/** 顶部栏高度 */
+const headerHeight = 48;
+
+/** 渲染图标 */
+function renderIcon(icon: Component) {
+  return () => h(NIcon, null, { default: () => h(icon) });
 }
+
+const menuOptions = computed(() => [
+  {
+    label: "当前连接设备",
+    key: "devices",
+    icon: renderIcon(PhonePortraitOutline),
+    children: devices.value.map((device) => ({
+      label: device.name,
+      key: device.id,
+    })),
+  },
+  // {
+  //   label: '舞，舞，舞',
+  //   key: 'dance-dance-dance',
+  //   icon: renderIcon(BookIcon),
+  //   children: [
+  //     {
+  //       type: 'group',
+  //       label: '人物',
+  //       key: 'people',
+  //       children: [
+  //         {
+  //           label: '叙事者',
+  //           key: 'narrator',
+  //           icon: renderIcon(PersonIcon)
+  //         },
+  //         {
+  //           label: '羊男',
+  //           key: 'sheep-man',
+  //           icon: renderIcon(PersonIcon)
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       label: '饮品',
+  //       key: 'beverage',
+  //       icon: renderIcon(WineIcon),
+  //       children: [
+  //         {
+  //           label: '威士忌',
+  //           key: 'whisky'
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       label: '食物',
+  //       key: 'food',
+  //       children: [
+  //         {
+  //           label: '三明治',
+  //           key: 'sandwich'
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       label: '过去增多，未来减少',
+  //       key: 'the-past-increases-the-future-recedes'
+  //     }
+  //   ]
+  // }
+]);
+const expandedKeys = ref<string[]>(["devices"]);
+
+refreshDevices();
 </script>
 
 <template>
-  <main class="container">
-    <h1>Welcome to Tauri + Vue</h1>
-
-    <div class="row">
-      <a href="https://vitejs.dev" target="_blank">
-        <img src="/vite.svg" class="logo vite" alt="Vite logo" />
-      </a>
-      <a href="https://tauri.app" target="_blank">
-        <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
-      </a>
-      <a href="https://vuejs.org/" target="_blank">
-        <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-      </a>
-    </div>
-    <p>Click on the Tauri, Vite, and Vue logos to learn more.</p>
-
-    <form class="row" @submit.prevent="greet">
-      <input id="greet-input" v-model="name" placeholder="Enter a name..." />
-      <button type="submit">Greet</button>
-    </form>
-    <p>{{ greetMsg }}</p>
-  </main>
+  <NConfigProvider :locale="zhCN" :date-locale="dateZhCN" :theme="theme">
+    <NMessageProvider>
+      <div style="position: relative; height: 100vh">
+        <NLayout position="absolute" has-sider>
+          <NLayoutSider
+            bordered
+            show-trigger
+            collapse-mode="width"
+            :collapsed-width
+            :width="siderWidth"
+            :native-scrollbar="false"
+            :inverted
+          >
+            <NMenu
+              v-model:value="currentDevice"
+              :expanded-keys
+              :inverted
+              :collapsed-width
+              :collapsed-icon-size="22"
+              :options="menuOptions"
+            />
+          </NLayoutSider>
+          <NLayout>
+            <NLayoutHeader
+              position="absolute"
+              :style="{ height: `${headerHeight}px`, padding: '0 14px' }"
+            >
+              <NFlex
+                justify="space-between"
+                align="center"
+                style="height: 100%"
+              >
+                <div />
+                <NButton quaternary @click="refreshDevices">
+                  <template #icon>
+                    <NIcon :component="Reload" />
+                  </template>
+                </NButton>
+              </NFlex>
+            </NLayoutHeader>
+            <NLayoutContent
+              ref="contentRef"
+              position="absolute"
+              :style="{
+                top: `${headerHeight}px`,
+                bottom: '64px',
+                left: '0',
+                right: '0',
+              }"
+            >
+              <FileList />
+            </NLayoutContent>
+            <NLayoutFooter
+              position="absolute"
+              :style="{ bottom: '0', height: '64px' }"
+            >
+              成府路
+            </NLayoutFooter>
+          </NLayout>
+        </NLayout>
+      </div>
+    </NMessageProvider>
+  </NConfigProvider>
 </template>
-
-<style scoped>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
-
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #249b73);
-}
-</style>
-<style>
-:root {
-  background-color: #f6f6f6;
-  color: #0f0f0f;
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-weight: 400;
-  line-height: 24px;
-  text-rendering: optimizelegibility;
-  font-synthesis: none;
-  text-size-adjust: 100%;
-}
-
-.container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  margin: 0;
-  padding-top: 10vh;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  color: #646cff;
-  font-weight: 500;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  padding: 0.6em 1.2em;
-  transition: border-color 0.25s;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  outline: none;
-  background-color: #fff;
-  box-shadow: 0 2px 2px rgb(0 0 0 / 20%);
-  color: #0f0f0f;
-  font-family: inherit;
-  font-size: 1em;
-  font-weight: 500;
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    background-color: #2f2f2f;
-    color: #f6f6f6;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    background-color: #0f0f0f98;
-    color: #fff;
-  }
-
-  button:active {
-    background-color: #0f0f0f69;
-  }
-}
-</style>
